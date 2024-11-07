@@ -1,6 +1,6 @@
 import sys
 from pyspark.sql import SparkSession, functions, types, DataFrame
-from pyspark.sql.functions import broadcast, col, lit
+from pyspark.sql.functions import broadcast, col, lit, concat
 
 
 spark = SparkSession.builder.appName('reddit user tracker for political subreddits').getOrCreate()
@@ -13,7 +13,8 @@ def load_filtered_data(path: str, schema: types.StructType, subreddits: list, ye
    # Filter during load
    return spark.read.json(path, schema=schema) \
            .where(col('subreddit').isin(subreddits)) \
-           .where(col('year').isin(years))
+           .where(col('year').isin(years)) \
+           .where(col('month').isin(6))
 
 def main():
    # Define paths
@@ -30,6 +31,8 @@ def main():
        types.StructField('subreddit_id', types.StringType()),  # Subreddit ID
        types.StructField('year', types.IntegerType()),  # Year of the comment
        types.StructField('month', types.IntegerType()), #comment month
+       types.StructField('created_utc', types.StringType()),
+
    ])
 
    # Define schema for submissions data
@@ -77,22 +80,30 @@ def main():
    #election_authors.show()
 
     # Join and label comments and submissions using column of 'type' to distinguish 
-   all_comments = reddit_comments.select('author', 'id', 'body', 'subreddit', 'subreddit_id', 'year', 'month') \
-              .join(broadcast(election_authors), on='author') \
-              .withColumn("type", lit("comment")) \
-              .withColumn("title", lit(None).cast("string")) \
-              .withColumn("selftext", lit(None).cast("string")) \
-              .withColumn("created", lit(None).cast("long"))
+   all_comments = reddit_comments.select('author','id','body','subreddit','subreddit_id',
+                                         'year','month',reddit_comments.created_utc.alias("created")) \
+              .join(broadcast(election_authors), on='author')
 
-   all_submissions = reddit_submissions.select('author', 'id', 'title', 'selftext', 'subreddit', 'subreddit_id',
+   all_submissions = reddit_submissions.select(
+    'author', 
+    'id', 
+    'title', 
+    'selftext', 
+    'subreddit', 
+    'subreddit_id', 
+    'year', 
+    'month', 
+    'created',
+    concat(reddit_submissions['title'], lit(' '), reddit_submissions['selftext']).alias('body'))
+
+                  
+   refined_submissions = all_submissions.select('author', 'id', 'body', 'subreddit', 'subreddit_id',
                                            'year', 'month', 'created') \
-                  .join(broadcast(election_authors), on='author') \
-                  .withColumn("type", lit("submission")) \
-                  .withColumn("body", lit(None).cast("string"))
+                  .join(broadcast(election_authors), on='author') 
                   
 
    # Combine comments and submissions into a single DataFrame
-   all_activity = all_comments.unionByName(all_submissions)
+   all_activity = all_comments.unionByName(all_submissions, allowMissingColumns=True)
 
    # Write the combined DataFrame to a single output location
    all_activity.write.json(output + '/all_activity', mode='overwrite', compression='gzip')

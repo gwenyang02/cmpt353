@@ -17,6 +17,7 @@ def main():
         types.StructField('subreddit_id', types.StringType()),  # Subreddit ID
         types.StructField('year', types.IntegerType()),  # Year of the comment
         types.StructField('month', types.IntegerType()),
+        types.StructField('created_utc', types.StringType()),
     ])
 
     # Define schema for submissions data
@@ -42,7 +43,7 @@ def main():
         'conservative', 'democrats', 'republicans', 'libertarian', 'progressive'
     ]
     # consider filtering years for smaller dataset
-    filter_years = list(map(functions.lit, [2016,2020]))
+    filter_years = list(map(functions.lit, [2016]))
     election_subs = list(map(functions.lit, election_subs))
     
     # Filter comments from specified subreddits
@@ -62,7 +63,8 @@ def main():
     election_submissions = reddit_submissions \
         .where(reddit_submissions['subreddit'].isin(election_subs)) \
         .where(reddit_submissions['year'].isin(filter_years)) \
-        .select('author', 'id', 'title', 'selftext', 'subreddit', 'subreddit_id', 'year', 'month', 'created')
+        .select('author', 'id', 'title', 'selftext', 'subreddit', 'subreddit_id', 'year', 'month', 'created') \
+
     # \ .limit(100)
     #print('election submissions')
     #election_submissions.show(100)
