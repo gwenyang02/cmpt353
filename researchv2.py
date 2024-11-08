@@ -10,11 +10,27 @@ assert sys.version_info >= (3, 10)  # make sure we have Python 3.10+
 assert spark.version >= '3.5'  # make sure we have Spark 3.5+
 
 def load_filtered_data(path: str, schema: types.StructType, subreddits: list, years: list) -> DataFrame:
-   # Filter during load
-   return spark.read.json(path, schema=schema) \
+   '''
+    load data and filter dataframe
+   :param path: string representing path to reddit submissions or comments
+   :param schema: a struct type representing the schema for each type of reddit data
+   :param subreddits: a list of strings representing the subreddits we want to filter to
+   :param years: a list of ints representing the years we want to filter to
+   :return: a dataframe for either reddit submissions or comments
+   '''
+   df = spark.read.json(path, schema=schema) \
            .where(col('subreddit').isin(subreddits)) \
            .where(col('year').isin(years)) \
-           .where(col('month').isin(6))
+           .where(col('month').isin(7))
+
+	# Check if the 'body' column exists => if it is it follows comment type schema
+	# filter out the comments that are empty or deleted
+   if 'body' in df.columns:
+        df = df.filter(~col('body').rlike('\[deleted\]|\[removed\]'))
+   #else:
+        # submission type schema
+        #df = df.filter(~col('selftext').rlike('\[deleted\]|\[removed\]'))
+   return df
 
 def main():
    # Define paths
@@ -31,6 +47,8 @@ def main():
        types.StructField('subreddit_id', types.StringType()),  # Subreddit ID
        types.StructField('year', types.IntegerType()),  # Year of the comment
        types.StructField('month', types.IntegerType()), #comment month
+       # timestamp for comment creation that needs to be converted
+       # https://stackoverflow.com/questions/16801162/
        types.StructField('created_utc', types.StringType()),
 
    ])
@@ -45,7 +63,7 @@ def main():
        types.StructField('subreddit_id', types.StringType()),  # Subreddit ID
        types.StructField('year', types.IntegerType()),  # Year of the submission
        types.StructField('month', types.IntegerType()), #month of submission
-       types.StructField('created', types.LongType()),  # Timestamp of submission creation
+       types.StructField('created_utc', types.StringType()),  # Timestamp of submission creation
    ])
    
    # List of subreddits related to US presidential elections and political discussions
@@ -56,10 +74,14 @@ def main():
    # consider filtering years for smaller dataset
    filter_years = [2016]
    # Load filtered submissions and comments data directly
-   reddit_submissions = load_filtered_data(reddit_submissions_path, submissions_schema, election_subs, filter_years).limit(100)
-   reddit_comments = load_filtered_data(reddit_comments_path, comments_schema, election_subs, filter_years).limit(100)
+   reddit_submissions = load_filtered_data(reddit_submissions_path, submissions_schema, election_subs, filter_years).limit(1000)
+   reddit_comments = load_filtered_data(reddit_comments_path, comments_schema, election_subs, filter_years).limit(1000)
+   
+   #reddit_submissions.show()
+   #print(" ")
+   #reddit_comments.show()
 
-   #writing comments and submissions to json
+   # writing comments and submissions to json
    reddit_comments.write.json(output + '/election_comments', mode='overwrite', compression='gzip')
    reddit_submissions.write.json(output + '/election_submissions', mode='overwrite', compression='gzip')
    
@@ -81,7 +103,7 @@ def main():
 
     # Join and label comments and submissions using column of 'type' to distinguish 
    all_comments = reddit_comments.select('author','id','body','subreddit','subreddit_id',
-                                         'year','month',reddit_comments.created_utc.alias("created")) \
+                                         'created_utc','year','month') \
               .join(broadcast(election_authors), on='author')
 
    all_submissions = reddit_submissions.select(
@@ -93,17 +115,17 @@ def main():
     'subreddit_id', 
     'year', 
     'month', 
-    'created',
+    'created_utc',
     concat(reddit_submissions['title'], lit(' '), reddit_submissions['selftext']).alias('body'))
 
                   
    refined_submissions = all_submissions.select('author', 'id', 'body', 'subreddit', 'subreddit_id',
-                                           'year', 'month', 'created') \
-                  .join(broadcast(election_authors), on='author') 
+                                           'year', 'month', 'created_utc') \
+                  .join(broadcast(election_authors), on='author')
                   
 
    # Combine comments and submissions into a single DataFrame
-   all_activity = all_comments.unionByName(all_submissions, allowMissingColumns=True)
+   all_activity = all_comments.unionByName(refined_submissions, allowMissingColumns=True)
 
    # Write the combined DataFrame to a single output location
    all_activity.write.json(output + '/all_activity', mode='overwrite', compression='gzip')
