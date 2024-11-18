@@ -1,6 +1,6 @@
 import pandas as pd
 import nltk
-# nltk.download('vader_lexicon') #for sentiment analysis
+#nltk.download('vader_lexicon') #for sentiment analysis
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 pd.set_option('display.max_columns', None)
 import matplotlib.pyplot as plt
@@ -62,7 +62,8 @@ def main():
     sia = SentimentIntensityAnalyzer()
 
     #reading in post data
-    posts_df = pd.read_csv('allsubmissionsoutput.csv')
+    posts_df = pd.read_csv('../allsubmissionsoutput.csv')
+    #posts_df = pd.read_csv('../allactivityoutput.csv')
     # print(posts_df.head())
 
     # Combine 'title' and 'selftext' into a single 'text' column
@@ -74,9 +75,12 @@ def main():
     democrats = ['Hillary', 'Clinton', 'Biden', 'Harris', 'Pelosi', 'Sanders', 'Schumer']
 
     #intialize sentiment pipeline 
-    sentiment_pipeline = pipeline("sentiment-analysis")
+    sentiment_pipeline = pipeline("sentiment-analysis",
+                                  model='distilbert/distilbert-base-uncased-finetuned-sst-2-english',
+                                  device=-1)
 
-    # add sentiment and group columns 
+    # add sentiment and group columns
+    # if using allactivityouput.csv, change posts_df['text'] to posts_df['body']
     posts_df['sentiment'], posts_df['group'], posts_df['hf_label'] = zip(*posts_df['text'].apply(
         lambda x: calculate_combined_sentiment(x, republicans, democrats,sia,sentiment_pipeline)
     ))

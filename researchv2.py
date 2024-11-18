@@ -94,10 +94,10 @@ def main():
    # then select distinct
    election_authors = reddit_comments.select("author") \
        .union(reddit_submissions.select("author")) \
-       .where(col('author') != '[deleted]') \
        .distinct() \
+       .where(col('author') != '[deleted]') \
        .cache()
-
+   print("\nUnique authors after union and removing [deleted]:", election_authors.count())
    #print('election authors')
    #election_authors.show()
 
@@ -116,17 +116,18 @@ def main():
     'year', 
     'month', 
     'created_utc',
-    concat(reddit_submissions['title'], lit(' '), reddit_submissions['selftext']).alias('body'))
+    # we are treating title and selftext as one comment body
+    concat(reddit_submissions['title'], lit(' '), reddit_submissions['selftext']).alias('body')) \
+            .join(broadcast(election_authors),on='author')
 
                    
    refined_submissions = all_submissions.select('author', 'id', 'body', 'subreddit', 'subreddit_id',
-                                           'year', 'month', 'created_utc') \
-                  .join(broadcast(election_authors), on='author')
+                                           'year', 'month', 'created_utc')
                   
 
    # Combine comments and submissions into a single DataFrame
    all_activity = all_comments.unionByName(refined_submissions, allowMissingColumns=True)
-
+   all_activity.show()
    # Write the combined DataFrame to a single output location
    all_activity.write.json(output + '/all_activity', mode='overwrite', compression='gzip')
 
