@@ -118,7 +118,7 @@ def main():
     'created_utc',
     concat(reddit_submissions['title'], lit(' '), reddit_submissions['selftext']).alias('body'))
 
-                  
+                   
    refined_submissions = all_submissions.select('author', 'id', 'body', 'subreddit', 'subreddit_id',
                                            'year', 'month', 'created_utc') \
                   .join(broadcast(election_authors), on='author')
