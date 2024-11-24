@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from transformers import pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 
 
 #defining calculate sentiment function
@@ -52,9 +53,30 @@ def aggregate_user_data(posts_df):
 
     return user_data
 
-def perform_pca_and_plot(user_data_filtered):
-    #TODO
-    return
+def perform_pca(X):
+    #pca and standardize
+    pca_model = make_pipeline(
+        StandardScaler(),
+        PCA(n_components=2)
+    )
+
+    #fitting and transforming the returned array
+    X2 = pca_model.fit_transform(X)
+    assert X2.shape == (X.shape[0],2)
+
+    return X2
+
+def perform_pca_and_plot(data):
+    #keep only numberic values from data
+    numeric_df = data.drop(columns=['author', 'group', 'hf_label'])
+
+    #use perform_pca function
+    X2 = perform_pca(numeric_df)
+
+    #plot
+    plt.figure(figsize=(10,6))
+    plt.scatter(X2[:,0], X2[:,1], c=numeric_df['sentiment'], cmap = 'coolwarm', s=30)
+    plt.show()
 
 #main 
 def main():
@@ -106,7 +128,6 @@ def main():
 
     # Perform PCA and plot
     perform_pca_and_plot(user_data_filtered)
-    # TODO
 
     # running unsupervised ml 
     #TODO
