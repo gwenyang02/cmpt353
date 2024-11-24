@@ -8,6 +8,7 @@ from transformers import pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
+import sys
 
 
 #defining calculate sentiment function
@@ -79,12 +80,12 @@ def perform_pca_and_plot(data):
     plt.show()
 
 #main 
-def main():
+def main(in_data):
     # Initialize VADER sentiment analyzer
     sia = SentimentIntensityAnalyzer()
 
     #reading in post data
-    posts_df = pd.read_csv('../allsubmissionsoutput.csv')
+    posts_df = pd.read_csv(in_data)
     #posts_df = pd.read_csv('../allactivityoutput.csv')
     # print(posts_df.head())
 
@@ -124,7 +125,7 @@ def main():
     # Drop rows with sentiment scores near zero  
     user_data_filtered = user_data[user_data['sentiment'].abs() > 0.2]
 
-    print(user_data_filtered.head(10))
+    #print(user_data_filtered.head(10))
 
     # Perform PCA and plot
     perform_pca_and_plot(user_data_filtered)
@@ -140,4 +141,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    in_data = sys.argv[1]
+    main(in_data)
