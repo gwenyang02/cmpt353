@@ -26,7 +26,7 @@ def rm_stopwords_tokenize(text_series):
     return tokenized_list
 
 def main():
-    data = pd.read_csv('../allactivityoutput.csv')
+    data = pd.read_csv('./allactivityoutput.csv')
     # following tutorial:
     # https://www.geeksforgeeks.org/removing-stop-words-nltk-python/#removing-stop-words-with-sklearn
     # https://www.ibm.com/reference/python/countvectorizer
