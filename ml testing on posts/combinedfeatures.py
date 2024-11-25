@@ -143,7 +143,7 @@ def compute_subreddit_features(data):
 
 def main():
     #read all activity dataframe
-    data = pd.read_csv('./allactivityoutput.csv')
+    data = pd.read_parquet('./allactivity.parquet')
 
     print(data.head(10))
     #add score for testing purposes
