@@ -69,7 +69,7 @@ def perform_pca(X):
 
 def perform_pca_and_plot(data):
     #keep only numberic values from data
-    numeric_df = data.drop(columns=['author', 'group', 'hf_label'])
+    numeric_df = data.drop(columns=['author', 'subreddit_id'])
 
     #use perform_pca function
     X2 = perform_pca(numeric_df)
@@ -77,7 +77,8 @@ def perform_pca_and_plot(data):
     #plot
     plt.figure(figsize=(10,6))
     plt.scatter(X2[:,0], X2[:,1], c=numeric_df['sentiment'], cmap = 'coolwarm', s=30)
-    plt.show()
+    #plt.show()
+    plt.savefig('PCA.png')
 
 #main 
 def main(in_data):
