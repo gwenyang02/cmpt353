@@ -166,7 +166,7 @@ def perform_Kmeans(data):
 
 def main():
     #read all activity dataframe
-    data = pd.read_parquet('./allactivity.parquet')
+    data = pd.read_parquet('./allactivitysmall.parquet')
 
     print(data.head(10))
     #add score for testing purposes
@@ -218,6 +218,7 @@ def main():
 
     # Proceed with your machine learning model using 'author_features'
     print(author_features.head())
+    author_features.to_csv('featuresoutputsmalldata.csv')
     
     #unsupervised Kmeans clustering
     numeric_author_features = author_features.drop(columns = 'author')
