@@ -15,6 +15,7 @@ nltk.download('stopwords')
 nltk.download('punkt_tab')
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+from sklearn.model_selection import train_test_split
 
 #display all columns
 pd.set_option('display.max_columns', None)
@@ -219,17 +220,20 @@ def main():
     print(author_features.head())
     
     #unsupervised Kmeans clustering
-    p_components = perform_pca(author_features)
-    Kmeans_clusters = perform_Kmeans(author_features)
+    numeric_author_features = author_features.drop(columns = 'author')
+    p_components = perform_pca(numeric_author_features)
+    kmeans_clusters = perform_Kmeans(numeric_author_features)
 
     #plotting Kmeans
     plt.figure(figsize=(10,6))
-    plt.scatter(p_components[:,0], p_components[:,1], c=Kmeans_clusters, cmap = 'Set1', s=30)
+    plt.scatter(p_components[:,0], p_components[:,1], c=kmeans_clusters, cmap = 'Set1', s=30)
     plt.xlabel('PCA Component 1')
     plt.ylabel('PCA Component 2')
     plt.colorbar(label='cluster')
     plt.savefig('KMeans.png')
 
+    #supevised
+    
     return
 
 
