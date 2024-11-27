@@ -141,6 +141,28 @@ def compute_subreddit_features(data):
     subreddit_counts = subreddit_data.groupby('author').sum().reset_index()
     return subreddit_counts
 
+def perform_pca(X):
+    #pca and standardize
+    pca_model = make_pipeline(
+        StandardScaler(),
+        PCA(n_components=2)
+    )
+
+    #fitting and transforming the returned array
+    X2 = pca_model.fit_transform(X)
+    assert X2.shape == (X.shape[0],2)
+
+    return X2
+
+
+def perform_Kmeans(data):
+    #not sure if we need the standardscaler here?
+    clusters = make_pipeline(StandardScaler(), KMeans(n_clusters = 3))
+
+    clusters.fit(data)
+
+    return clusters.predict(data)
+
 def main():
     #read all activity dataframe
     data = pd.read_parquet('./allactivity.parquet')
@@ -196,6 +218,18 @@ def main():
     # Proceed with your machine learning model using 'author_features'
     print(author_features.head())
     
+    #unsupervised Kmeans clustering
+    p_components = perform_pca(author_features)
+    Kmeans_clusters = perform_Kmeans(author_features)
+
+    #plotting Kmeans
+    plt.figure(figsize=(10,6))
+    plt.scatter(p_components[:,0], p_components[:,1], c=Kmeans_clusters, cmap = 'Set1', s=30)
+    plt.xlabel('PCA Component 1')
+    plt.ylabel('PCA Component 2')
+    plt.colorbar(label='cluster')
+    plt.savefig('KMeans.png')
+
     return
 
 
