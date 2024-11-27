@@ -233,7 +233,16 @@ def main():
     plt.savefig('KMeans.png')
 
     #supevised
-    
+    #X =
+    #y = 
+
+    #X_train, X_valid, y_train, y_valid = train_test_split(X,y)
+
+    #model - not sure which one to use
+    #model = .fit(X_train, y_train)
+    #print
+    #print(model.score(X_valid, y_valid))  
+
     return
 
 
