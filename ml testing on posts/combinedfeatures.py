@@ -1,28 +1,67 @@
+import os
 import pandas as pd
 import nltk
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import matplotlib.pyplot as plt
-from transformers import pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-import sys
 import numpy as np
-from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
-nltk.download('stopwords')
-nltk.download('punkt_tab')
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
+import multiprocessing
+from multiprocessing import Pool
 
-#display all columns
+# Set TOKENIZERS_PARALLELISM to false to avoid warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
+# Download necessary NLTK data
+nltk.download('stopwords')
+nltk.download('punkt')
+
+# Display all columns
 pd.set_option('display.max_columns', None)
 
+# Global variables for sentiment analysis
+sia = None
+sentiment_pipeline = None
 
-#feature functions 
-def calculate_combined_sentiment(text, sia, sentiment_pipeline):
+
+#filter by politicans first
+def filter_by_politicians(data):
+    politicians = ['Trump', 'Pence', 'DeSantis', 'McConnell', 'Cruz', 'Rubio',
+                   'Hillary', 'Clinton', 'Biden', 'Harris', 'Pelosi', 'Sanders', 'Schumer']
+    # Combine the list into a regex pattern
+    pattern = '|'.join(politicians)
+    return data[data['body'].str.contains(pattern, case=False, na=False)]
+
+# Feature functions
+def init_sentiment_analyzers():
+    """
+    Initializer function for each worker process in the Pool.
+    Initializes the SentimentIntensityAnalyzer and the Hugging Face sentiment pipeline.
+    """
+    global sia, sentiment_pipeline
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
+    from transformers import pipeline
+
+    sia = SentimentIntensityAnalyzer()
+    sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model='distilbert/distilbert-base-uncased-finetuned-sst-2-english',
+        device=-1
+    )
+
+def calculate_combined_sentiment(text):
+    """
+    Calculates combined sentiment using VADER and Hugging Face's sentiment-analysis pipeline.
+    Also checks for mentions of specified politicians.
+    """
+    global sia, sentiment_pipeline
+
+    # Define lists of politicians
     republicans = ['Trump', 'Pence', 'DeSantis', 'McConnell', 'Cruz', 'Rubio']
     democrats = ['Hillary', 'Clinton', 'Biden', 'Harris', 'Pelosi', 'Sanders', 'Schumer']
 
@@ -60,7 +99,9 @@ def calculate_combined_sentiment(text, sia, sentiment_pipeline):
     return combined_score, politicianmentioned
 
 def compute_sentiment_features(data):
-    # Aggregate sentiment per author mean min and max sentiment
+    """
+    Aggregates sentiment scores per author: mean, min, and max.
+    """
     author_sentiment = data.groupby('author')['sentiment'].agg(['mean', 'min', 'max']).reset_index()
     author_sentiment.rename(columns={
         'mean': 'sentiment_mean',
@@ -69,8 +110,10 @@ def compute_sentiment_features(data):
     }, inplace=True)
     return author_sentiment
 
-
 def rm_stopwords_tokenize(text_series):
+    """
+    Tokenizes text and removes English stopwords.
+    """
     stop_words = set(stopwords.words('english'))
     tokenized_list = []
     for text in text_series:
@@ -81,6 +124,9 @@ def rm_stopwords_tokenize(text_series):
     return tokenized_list
 
 def compute_ngram_features(data, ngram_range=(1, 2), top_n=10):
+    """
+    Computes TF-IDF n-gram features and selects the top_n most frequent n-grams.
+    """
     # Tokenize and remove stopwords
     tokenized_data = rm_stopwords_tokenize(data['body'])
     vectorizer = TfidfVectorizer(ngram_range=ngram_range)
@@ -98,16 +144,16 @@ def compute_ngram_features(data, ngram_range=(1, 2), top_n=10):
     # Sort the features by counts (descending)
     sorted_feature_counts = sorted(feature_counts, key=lambda x: x[1], reverse=True)
     
-    top_ngrams = []
-    for feature,count in sorted_feature_counts[:top_n]:
-        top_ngrams.append(feature)
+    top_ngrams = [feature for feature, count in sorted_feature_counts[:top_n]]
     
     user_ngrams = user_ngrams.loc[:, user_ngrams.columns.isin(top_ngrams + ['author'])]
     
     return user_ngrams
 
-
 def compute_time_features(data):
+    """
+    Extracts the most common posting hour per author.
+    """
     if data['created_utc'].dtype == 'int64' or data['created_utc'].dtype == 'float64':
         data['created_utc'] = pd.to_datetime(data['created_utc'], unit='s')
 
@@ -120,6 +166,9 @@ def compute_time_features(data):
     return author_time
 
 def compute_avg_score_per_subreddit_per_author(data):
+    """
+    Calculates the average score per subreddit per author and pivots the data.
+    """
     # Calculate the average score per subreddit per author
     author_subreddit_scores = data.groupby(['author', 'subreddit'])['score'].mean().reset_index()
     author_subreddit_scores.rename(columns={'score': 'avg_score'}, inplace=True)
@@ -127,88 +176,101 @@ def compute_avg_score_per_subreddit_per_author(data):
     # Pivot the data to have subreddits as columns
     avg_score_per_subreddit = author_subreddit_scores.pivot(index='author', columns='subreddit', values='avg_score').reset_index()
 
-    # Rename cols
+    # Rename columns
     avg_score_per_subreddit.columns = ['author'] + [f'avg_score_{col}' for col in avg_score_per_subreddit.columns if col != 'author']
 
-    # Fill NaN vals with 0
+    # Fill NaN values with 0
     avg_score_per_subreddit.fillna(0, inplace=True)
 
     return avg_score_per_subreddit
 
 def compute_subreddit_features(data):
-    # One-hot encode subreddits
+    """
+    One-hot encodes subreddits and aggregates counts per author.
+    """
     subreddit_encoded = pd.get_dummies(data['subreddit'], prefix='subreddit')
     subreddit_data = pd.concat([data[['author']], subreddit_encoded], axis=1)
     subreddit_counts = subreddit_data.groupby('author').sum().reset_index()
     return subreddit_counts
 
 def perform_pca(X):
-    #pca and standardize
+    """
+    Performs PCA on the feature set and reduces it to 2 components.
+    """
     pca_model = make_pipeline(
         StandardScaler(),
         PCA(n_components=2)
     )
 
-    #fitting and transforming the returned array
+    # Fitting and transforming the data
     X2 = pca_model.fit_transform(X)
-    assert X2.shape == (X.shape[0],2)
+    assert X2.shape == (X.shape[0], 2)
 
     return X2
 
-
 def perform_Kmeans(data):
-    #not sure if we need the standardscaler here?
-    clusters = make_pipeline(StandardScaler(), KMeans(n_clusters = 3))
+    """
+    Performs KMeans clustering on the data.
+    """
+    clusters = make_pipeline(StandardScaler(), KMeans(n_clusters=3, random_state=42))
 
     clusters.fit(data)
 
     return clusters.predict(data)
 
 def main():
-    #read all activity dataframe
-    data = pd.read_parquet('./allactivitysmall.parquet')
+    # Read all activity dataframe
+    data = pd.read_parquet('./allactivity.parquet')
 
     print(data.head(10))
-    #add score for testing purposes
-    data['score'] = 1
 
     max_length = 512  # Maximum sequence length for the model
     data['text_too_long'] = data['body'].apply(lambda x: len(x.split()) > max_length)
 
-    #fiter out rows where text is too long so that hugging face works
+    # Filter out rows where text is too long so that Hugging Face works
     data = data[~data['text_too_long']]
 
-    # get sentiment analysis
-    # Initialize VADER sentiment analyzer and sentiment pipeline
-    sia = SentimentIntensityAnalyzer()
-    sentiment_pipeline = pipeline("sentiment-analysis",
-                                  model='distilbert/distilbert-base-uncased-finetuned-sst-2-english',
-                                  device=-1)
-    
-    #add sentiment analysis column to dataframe
-    data[['sentiment', 'politicianmentioned']] = data['body'].apply(
-        lambda x: pd.Series(calculate_combined_sentiment(x, sia, sentiment_pipeline))
-    )
+    data = filter_by_politicians(data)
 
-    #throw out rows where overall sentiment analysis returns < 0.2 or politicianmentioned is false
+    # Standardize author names to lowercase and strip spaces to ensure consistency
+    data['author'] = data['author'].str.strip().str.lower()
+
+    # Prepare texts for sentiment analysis
+    texts = data['body'].tolist()
+
+    # Initialize multiprocessing pool with 'spawn' to avoid tokenizer warnings
+    multiprocessing.set_start_method('spawn', force=True)
+
+    with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
+        results = pool.map(calculate_combined_sentiment, texts)
+
+    # Convert results to DataFrame
+    sentiments_df = pd.DataFrame(results, columns=['sentiment', 'politicianmentioned'])
+    data = data.reset_index(drop=True)
+    sentiments_df = sentiments_df.reset_index(drop=True)
+    data = pd.concat([data, sentiments_df], axis=1)
+
+    # Throw out rows where overall sentiment analysis returns < 0.2 or politicianmentioned is false
     data = data[(data['sentiment'].abs() >= 0.2) & (data['politicianmentioned'])]
-    #to see how much data is left
-    print(f"Filtered data: {len(data)} rows remaining after sentiment and politician filtering.") 
 
-    #compute adittional sentiment features
+    # Compute additional sentiment features
     author_sentiment = compute_sentiment_features(data)
 
-    # get ngrams feature
-    user_ngrams = compute_ngram_features(data, ngram_range=(1, 2),top_n=10)
+    # Get n-grams feature
+    user_ngrams = compute_ngram_features(data, ngram_range=(1, 2), top_n=10)
 
     # Compute time-based features
     author_time = compute_time_features(data)
 
-     # Compute average score per subreddit per author
+    # Compute average score per subreddit per author
     avg_score_per_subreddit = compute_avg_score_per_subreddit_per_author(data)
 
-    # one hot encoded
+    # One-hot encoded subreddit features
     author_subreddit_counts = compute_subreddit_features(data)
+
+    # Verify the number of unique authors
+    unique_authors = data['author'].nunique()
+    print(f"Number of unique authors: {unique_authors}")
 
     # Merge all author-level features
     author_features = user_ngrams.merge(author_sentiment, on='author', how='left')
@@ -216,37 +278,27 @@ def main():
     author_features = author_features.merge(avg_score_per_subreddit, on='author', how='left')
     author_features = author_features.merge(author_subreddit_counts, on='author', how='left')
 
+    # Fill any remaining NaN values
+    author_features.fillna(0, inplace=True)
+
     # Proceed with your machine learning model using 'author_features'
     print(author_features.head())
-    author_features.to_csv('featuresoutputsmalldata.csv')
-    
-    #unsupervised Kmeans clustering
-    numeric_author_features = author_features.drop(columns = 'author')
+    author_features.to_csv('featuresoutputallactivity.csv', index=False)
+
+    # Unsupervised KMeans clustering
+    numeric_author_features = author_features.drop(columns='author')
     p_components = perform_pca(numeric_author_features)
     kmeans_clusters = perform_Kmeans(numeric_author_features)
 
-    #plotting Kmeans
+    # Plotting KMeans
     plt.figure(figsize=(10,6))
-    plt.scatter(p_components[:,0], p_components[:,1], c=kmeans_clusters, cmap = 'Set1', s=30)
+    plt.scatter(p_components[:,0], p_components[:,1], c=kmeans_clusters, cmap='Set1', s=30)
     plt.xlabel('PCA Component 1')
     plt.ylabel('PCA Component 2')
     plt.colorbar(label='cluster')
     plt.savefig('KMeans.png')
 
-    #supevised
-    #X =
-    #y = 
-
-    #X_train, X_valid, y_train, y_valid = train_test_split(X,y)
-
-    #model - not sure which one to use
-    #model = .fit(X_train, y_train)
-    #print
-    #print(model.score(X_valid, y_valid))  
-
     return
-
-
 
 if __name__ == '__main__':
     main()
