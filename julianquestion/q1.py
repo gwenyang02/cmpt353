@@ -9,11 +9,15 @@ import seaborn as sns
 from scipy import stats
 
 # Load the data
-data = pd.read_csv('nongroupedsentiment.csv')
+# nongroupedsentiment2.csv uses allactivity
+# nongroupedsentiment3.csv uses posts only
+data = pd.read_csv('nongroupedsentiment3.csv')
 
 # Get the count of comments per subreddit
 subreddit_counts = data['subreddit'].value_counts()
-
+# filter for subreddits with more than 40 counts
+# by CLT, assuming data is normally distributed
+data =  data.groupby('subreddit').filter(lambda x: len(x) > 40)
 print(subreddit_counts)
 
 # Set the figure size
@@ -29,7 +33,15 @@ plt.xticks(rotation=90)
 plt.title('Distribution of Sentiment Scores per Subreddit')
 plt.xlabel('Subreddit')
 plt.ylabel('Sentiment Score')
+# Show the plot
+plt.tight_layout()
+plt.show()
 
+plt.figure(figsize=(12, 8))
+sns.violinplot(x='subreddit', y='sentiment', data=data)
+plt.title('Distribution of Sentiment Scores per Subreddit')
+plt.xlabel('Subreddit')
+plt.ylabel('Sentiment Score')
 # Show the plot
 plt.tight_layout()
 plt.show()

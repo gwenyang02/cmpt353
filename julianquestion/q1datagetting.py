@@ -29,11 +29,14 @@ def init_sentiment_analyzers():
         device=-1
     )
 
-def calculate_combined_sentiment(text):
+def calculate_combined_sentiment(inputs):
     """
     Calculates combined sentiment using VADER and Hugging Face's sentiment-analysis pipeline.
     Also checks for mentions of specified politicians.
     """
+    # unpack tuple (text, subreddit)
+    text, subreddit = inputs
+
     global sia, sentiment_pipeline
 
     # Define lists of politicians
@@ -53,15 +56,34 @@ def calculate_combined_sentiment(text):
     else:  # NEGATIVE
         combined_score = -abs(vader_score)
 
+    # edge case: check if "Harris" specifically is mentioned with "bipod"
+    # this is a type of gun
+    harris_mentioned = "harris" in text.lower()
+    bipod_mentioned = "bipod" in text.lower()
     # Check for mentions of Republicans or Democrats
     politician_mentioned = False
     mentioned_group = None
-    for republican in republicans:
-        if republican.lower() in text.lower():
-            mentioned_group = 'republican'
-            combined_score *= 1  # No change for Republicans
+
+    # Check if "Harris" specifically is mentioned without being around "bipod"
+    # and if not around "bipod" and in gun-related subreddits
+    # assume they are talking about the gun named harris
+    if harris_mentioned and bipod_mentioned:
+        if subreddit in ['guns', 'guncontrol', 'Firearms']: # Gun-related subreddits
+            poltitician_mentioned = False  # Not Kamala-related
+            return combined_score, poltitician_mentioned
+        else:
+            # Assume Kamala Harris for other subreddits
+            mentioned_group = 'democrat'
+            combined_score *= -1
             politician_mentioned = True
-            break
+
+    if not politician_mentioned:
+        for republican in republicans:
+            if republican.lower() in text.lower():
+                mentioned_group = 'republican'
+                combined_score *= 1  # No change for Republicans
+                politician_mentioned = True
+                break
 
     if mentioned_group is None:  # Only check Democrats if no Republican match
         for democrat in democrats:
@@ -78,20 +100,28 @@ def main(input_csv, output_csv):
 
     # Read the parquet file
     data = pd.read_parquet(input_csv)
+    data['subreddit'].value_counts()
 
-    # Ensure 'body' is of type string
-    data['body'] = data['body'].astype(str)
+    # Ensure 'body' is of type string for all_activity data
+    #data['body'] = data['body'].astype(str)
+    # for posts data
+    data['text'] = data['title'] + ' ' + data['selftext'].fillna('')
 
-    data['author'] = data['author'].str.strip().str.lower()
+    data['author'] = data['author'].str.strip()
+
 
     # Prepare texts for sentiment analysis
-    texts = data['body'].tolist()
+    texts = data['text'].tolist()
+    subreddits = data['subreddit'].tolist()
+
+    # Combine texts and subreddits into a list of tuples
+    input_data = list(zip(texts, subreddits))
 
     # Initialize multiprocessing pool with 'spawn' to avoid tokenizer warnings
     multiprocessing.set_start_method('spawn', force=True)
 
     with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
-        results = pool.map(calculate_combined_sentiment, texts)
+        results = pool.map(calculate_combined_sentiment, input_data)
 
     # Convert results to DataFrame
     sentiments_df = pd.DataFrame(results, columns=['sentiment', 'politician_mentioned'])
@@ -108,6 +138,6 @@ def main(input_csv, output_csv):
     print(f"Sentiment analysis completed. Output saved to {output_csv}")
 
 if __name__ == '__main__':
-    input_csv = './allactivity.parquet'
-    output_csv = 'nongroupedsentiment.csv'  
+    input_csv = '../allsubsmall2.parquet'
+    output_csv = 'nongroupedsentiment3.csv'
     main(input_csv, output_csv)
