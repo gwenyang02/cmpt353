@@ -40,7 +40,7 @@ def main(in_data):
     #make plot look nice
     plt.xlabel('PCA 1')
     plt.ylabel('PCA 2')
-    plt.title('KMeans Clusters')
+    plt.title('KMeans Clusters - 4 Clusters')
     plt.savefig('KMeans4.png')
 
 
@@ -57,11 +57,10 @@ def main(in_data):
     print(pca2_most_important)
 
     #for analysis of the means for each cluster
-    print(important_features.groupby('cluster').mean())
+    clusters_analysis = important_features.groupby('cluster').mean()
+    clusters_analysis.to_csv('cluster_analysis.csv', index = False)
     
     
-    
-
 if __name__ == '__main__':
     in_data = sys.argv[1]
     main(in_data)
