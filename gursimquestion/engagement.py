@@ -4,6 +4,8 @@ import sys
 from scipy.stats import ttest_ind
 
 #Q1: Which political posts (Republican or Democratic) tend to get more engagement and is there a significant difference between them?
+#To run: enter the author_data.csv file on the command line
+#Output: the engagement.csv and ttest pvalue
 
 def get_political_leaning(score):
     if score > 0:
