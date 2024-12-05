@@ -46,5 +46,5 @@ def main(input_csv, output_csv):
 
 if __name__ == '__main__':
     input_csv = 'datafiles/allsubsmall2.parquet'
-    output_csv = 'non_group_sent.csv'
+    output_csv = 'non_group_sent_synonyms.csv'
     main(input_csv,output_csv)

@@ -369,7 +369,7 @@ def sentiment2(inputs):
     # check if any policy from policy_shift has a fuzzy match score greater than 80
     #checking if synonym match
     matched_policy = find_similar_policy(text, synonym_map, policy_shift.keys())
-    if not contains_party_keywords and contains_policy_match:
+    if not contains_party_keywords and matched_policy == 0:
         return 0, False, 0
 
 
@@ -425,10 +425,13 @@ def sentiment2(inputs):
     # limit the maximum combined score so that it doesn't go out of bounds from -1 to 1
     # e.g. if a post has sentiment of 0.8, shifting it further by +0.5 would make it go out of bounds
     # do we need to do more standardization of the combined_score after this?
-    combined_score = max(-1, min(1, combined_score))
+    # combined_score = max(-1, min(1, combined_score))
+    shifted = max(-1, min(1, shifted))
 
     # Return both combined_score, politician_mentioned, shifted
     return combined_score, politician_mentioned, shifted
 
     # combined score is same as sentiment 1
     # shifted is updated
+
+
