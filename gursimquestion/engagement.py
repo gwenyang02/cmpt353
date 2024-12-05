@@ -44,6 +44,3 @@ def main(in_data):
 if __name__ == '__main__':
     in_data = sys.argv[1]
     main(in_data)
-
-#Are posts with more engagement (upvotes, comments) associated with more extreme political sentiment?
-#Can we classify authors into Republican or Democratic groups based on their sentiment scores?
