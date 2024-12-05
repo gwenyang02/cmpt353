@@ -16,13 +16,14 @@ def categorize_score(x):
         return 'very_positive'
 
 #read csv
-data = pd.read_csv('nongroupedsentiment.csv')
+data = pd.read_csv('../non_group_sent.csv')
 
 #just do this for many different subredit names
-gunrights_data = data[data['subreddit'] == 'immigration']
+subreddit_name = 'AmericanPolitics'
+gunrights_data = data[data['subreddit'] == subreddit_name]
 
 # make category sentiment >0 or <0
-gunrights_data['sentiment_category'] = gunrights_data['sentiment'].apply(
+gunrights_data['sentiment_category'] = gunrights_data['shifted'].apply(
     lambda x: 'pro_republican' if x >= 0 else 'pro_democrat'
 )
 
@@ -45,6 +46,7 @@ print(contingency_table)
 chi2, p, dof, expected = chi2_contingency(contingency_table)
 
 print("Chi-squared Test Results")
+print(f"Subreddit: {subreddit_name}")
 print(f"Chi2 Statistic: {chi2}")
 print(f"P-value: {p}")
 

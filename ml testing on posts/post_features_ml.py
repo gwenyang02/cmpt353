@@ -4,7 +4,7 @@ import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 pd.set_option('display.max_columns', None)
 import matplotlib.pyplot as plt
-from transformers import pipeline
+from transformers import pipeline, GPT2Tokenizer
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -86,7 +86,9 @@ def main(in_data):
     sia = SentimentIntensityAnalyzer()
 
     #reading in post data
-    posts_df = pd.read_csv(in_data)
+    #posts_df = pd.read_csv(in_data)
+    posts_df = pd.read_parquet(in_data)
+
     #posts_df = pd.read_csv('../allactivityoutput.csv')
     # print(posts_df.head())
 

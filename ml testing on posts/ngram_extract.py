@@ -25,8 +25,12 @@ def rm_stopwords_tokenize(text_series):
         tokenized_list.append(' '.join(filtered_tokens))  # join tokens back into a string
     return tokenized_list
 
-def main():
-    data = pd.read_csv('./allactivityoutput.csv')
+def main(input_csv, output_csv):
+    # Define lists of politicians
+    politicians = ['Trump', 'Pence', 'DeSantis', 'McConnell', 'Cruz', 'Rubio',
+                   'Hillary', 'Clinton', 'Biden', 'Harris', 'Pelosi', 'Sanders', 'Schumer']
+
+    data = pd.read_csv(input_csv)
     # following tutorial:
     # https://www.geeksforgeeks.org/removing-stop-words-nltk-python/#removing-stop-words-with-sklearn
     # https://www.ibm.com/reference/python/countvectorizer
@@ -69,7 +73,14 @@ def main():
     # https://stackoverflow.com/questions/48198021/
     # filter user_ngrams dataframe for column names in top_ngrams
     user_ngrams = user_ngrams.loc[:, user_ngrams.columns.isin(top_ngrams + ['author'])]
-    print(user_ngrams)
+
+    # Now filter out comments that don't mention politicians
+    final_ngrams = user_ngrams[user_ngrams.isin()]
+
+    # Save the DataFrame with sentiment per comment
+    final_ngrams.to_csv(output_csv, index=False)
+    print(f"N-gram extraction completed. Output saved to {output_csv}")
+
     # output shows that for each author, the frequency they use each ngram, each ngram is a feature
     # we can now join user_ngrams with user_data_filtered in 'ml testing on posts/post_features_ml.py'
     # or we can keep things separate and do clustering here
@@ -81,4 +92,6 @@ def main():
     return
 
 if __name__ == '__main__':
-    main()
+    input_csv = '../allsubsmall2.parquet'
+    output_csv = 'nongroupedsentiposts.csv'
+    main(input_csv, output_csv)

@@ -8,11 +8,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
-# Load the data
-# nongroupedsentiment2.csv uses allactivity
-# nongroupedsentiment3.csv uses posts only
-data = pd.read_csv('nongroupedsentiment3.csv')
+pd.set_option('display.max_columns', None) #added to view all cols
 
+# Load the data
+# nongroupedsentiall.csv uses allactivitysmall2 (comments and posts)
+# nongroupedsentiposts.csv uses allsubsmall2 (posts) only
+data = pd.read_csv('../non_group_sent.csv')
+data = data[data['shifted'] != 0]
 # Get the count of comments per subreddit
 subreddit_counts = data['subreddit'].value_counts()
 # filter for subreddits with more than 40 counts
@@ -20,11 +22,14 @@ subreddit_counts = data['subreddit'].value_counts()
 data =  data.groupby('subreddit').filter(lambda x: len(x) > 40)
 print(subreddit_counts)
 
+data2 = data[data['subreddit']=="The_Donald"]
+print(data2.head(10))
+
 # Set the figure size
 plt.figure(figsize=(12, 8))
 
 # Create a boxplot
-sns.boxplot(x='subreddit', y='sentiment', data=data)
+sns.boxplot(x='subreddit', y='shifted', data=data)
 
 # Rotate x-axis labels for readability
 plt.xticks(rotation=90)

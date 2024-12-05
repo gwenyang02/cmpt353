@@ -26,6 +26,7 @@ def init_sentiment_analyzers():
     sentiment_pipeline = pipeline(
         "sentiment-analysis",
         model='distilbert-base-uncased-finetuned-sst-2-english',
+        # model="SamLowe/roberta-base-go_emotions"
         device=-1
     )
 
@@ -127,7 +128,7 @@ def main(input_csv, output_csv):
     sentiments_df = pd.DataFrame(results, columns=['sentiment', 'politician_mentioned'])
     data = data.reset_index(drop=True)
     sentiments_df = sentiments_df.reset_index(drop=True)
-    # Joining the two dataframes so I have sentiment analysis with comments
+    # Joining the two dataframes so I have sentiment analysis with comments and other columns
     data = pd.concat([data, sentiments_df], axis=1)
 
     # Now filter out comments that don't mention politicians
@@ -139,5 +140,5 @@ def main(input_csv, output_csv):
 
 if __name__ == '__main__':
     input_csv = '../allsubsmall2.parquet'
-    output_csv = 'nongroupedsentiment3.csv'
+    output_csv = 'nongroupedsentiposts.csv'
     main(input_csv, output_csv)
