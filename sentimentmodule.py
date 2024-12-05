@@ -4,11 +4,11 @@
 
 #importing for string policy variation
 from fuzzywuzzy import fuzz
-# from nltk.corpus import wordnet
-# from nltk import download
+from nltk.corpus import wordnet
+from nltk import download
 
 # Ensure NLTK WordNet is downloaded
-#download('wordnet')
+download('wordnet')
 
 def init_sentiment_analyzers():
     """
@@ -115,43 +115,43 @@ def sentiment1(inputs):
 
 # -----------
 #supporting functions for getting synonyms of the policies
-# def get_synonyms(word):
-#     synonyms = set()
-#     for synset in wordnet.synsets(word):
-#         for lemma in synset.lemmas():
-#             synonyms.add(lemma.name().replace("_", " "))
-#     return synonyms
-#
-# def precompute_policy_synonyms(policy_list):
-#     """
-#     Precompute synonyms for all policies in the policy list.
-#     Returns a dictionary mapping each policy to its set of synonyms.
-#     """
-#     synonym_map = {}
-#     for policy in policy_list:
-#         synonyms = get_synonyms(policy)
-#         synonym_map[policy] = synonyms
-#     return synonym_map
-#
-# def find_similar_policy(text, synonym_map, policy_list, fuzzy_threshold=80):
-#     """
-#     Find the most similar policy to the input text based on precomputed synonyms and fuzzy matching.
-#     If no similar policy is found, return 0.
-#     """
-#     text_lower = text.lower()
-#
-#     # First, check for exact or synonym matches
-#     for policy, synonyms in synonym_map.items():
-#         all_terms = {policy} | synonyms  # Include both policy and its synonyms
-#         if any(term.lower() in text_lower for term in all_terms):
-#             return policy
-#
-#     # If no synonym match, use fuzzy matching
-#     for policy in policy_list:
-#         if fuzz.partial_ratio(policy.lower(), text_lower) >= fuzzy_threshold:
-#             return policy
-#
-#     return 0
+def get_synonyms(word):
+    synonyms = set()
+    for synset in wordnet.synsets(word):
+        for lemma in synset.lemmas():
+            synonyms.add(lemma.name().replace("_", " "))
+    return synonyms
+
+def precompute_policy_synonyms(policy_list):
+    """
+    Precompute synonyms for all policies in the policy list.
+    Returns a dictionary mapping each policy to its set of synonyms.
+    """
+    synonym_map = {}
+    for policy in policy_list:
+        synonyms = get_synonyms(policy)
+        synonym_map[policy] = synonyms
+    return synonym_map
+
+def find_similar_policy(text, synonym_map, policy_list, fuzzy_threshold=80):
+    """
+    Find the most similar policy to the input text based on precomputed synonyms and fuzzy matching.
+    If no similar policy is found, return 0.
+    """
+    text_lower = text.lower()
+
+    # First, check for exact or synonym matches
+    for policy, synonyms in synonym_map.items():
+        all_terms = {policy} | synonyms  # Include both policy and its synonyms
+        if any(term.lower() in text_lower for term in all_terms):
+            return policy
+
+    # If no synonym match, use fuzzy matching
+    for policy in policy_list:
+        if fuzz.partial_ratio(policy.lower(), text_lower) >= fuzzy_threshold:
+            return policy
+
+    return 0
 #-------------------------------
 #case 1: post has politican mentioned and policy
 # what shld happen: caluclate combined sentiment then
@@ -361,13 +361,17 @@ def sentiment2(inputs):
     # Case 4: post has no politican and no policy
     # filtering early to reduce unecessary HF computation
 
-    # check if any Republican or Democrat keywords are present in the text
+    #precomputing policy synonyms
+    synonym_map = precompute_policy_synonyms(policy_shift.keys())
+
+    # early filtering for no politician or policy
     contains_party_keywords = any(p.lower() in text.lower() for p in republicans + democrats)
     # check if any policy from policy_shift has a fuzzy match score greater than 80
-    contains_policy_match = any(fuzz.partial_ratio(policy, text.lower()) > 80 for policy in policy_shift.keys())
-
+    #checking if synonym match
+    matched_policy = find_similar_policy(text, synonym_map, policy_shift.keys())
     if not contains_party_keywords and contains_policy_match:
         return 0, False, 0
+
 
     # Determine VADER sentiment score
     vader_score = sia.polarity_scores(text)['compound']
