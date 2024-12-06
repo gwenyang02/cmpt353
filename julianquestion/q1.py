@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
+from scipy.stats import f_oneway
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+
 pd.set_option('display.max_columns', None) #added to view all cols
 
 # Load the data
@@ -53,12 +56,35 @@ plt.tight_layout()
 plt.show()
 
 
-#doing an ANOVA to see differences in the distribution means not due to chance
+groups = []
 
+# Group the data by subreddit
+subreddit_grouped = data.groupby('subreddit')
 
+for name, group in subreddit_grouped:
+    sentiment_scores = group['shifted'].values
+    groups.append(sentiment_scores)
 
+anova_result = f_oneway(*groups)
+print("ANOVA result:")
+print(f" p-value: {anova_result.pvalue}")
 
-#tukey hsd
+# Perform Tukey HSD test for pairwise comparison
+# Create a new DataFrame with 'shifted' and 'subreddit' columns for Tukey HSD
+tukey_data = data[['shifted', 'subreddit']]
+
+tukey = pairwise_tukeyhsd(endog=tukey_data['shifted'], groups=tukey_data['subreddit'], alpha=0.05)
+
+# Display Tukey HSD results
+print("\nTukey HSD results:")
+print(tukey)
+
+#visualizing
+tukey.plot_simultaneous(figsize=(10, 6))
+plt.title('Tukey HSD Pairwise Comparisons')
+plt.show()
+
+#what can we do to get differences? 
 
 
 
