@@ -13,7 +13,7 @@ pd.set_option('display.max_columns', None) #added to view all cols
 # Load the data
 # nongroupedsentiall.csv uses allactivitysmall2 (comments and posts)
 # nongroupedsentiposts.csv uses allsubsmall2 (posts) only
-data = pd.read_csv('../non_group_sent.csv')
+data = pd.read_csv('../csvfiles/non_group_sent.csv')
 data = data[data['shifted'] != 0]
 # Get the count of comments per subreddit
 subreddit_counts = data['subreddit'].value_counts()

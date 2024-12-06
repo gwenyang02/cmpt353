@@ -2,13 +2,7 @@
 #potentially we could have features sentimentanalysis1 sentimentanalysis2
 
 
-#importing for string policy variation
-from fuzzywuzzy import fuzz
-from nltk.corpus import wordnet
-from nltk import download
 
-# Ensure NLTK WordNet is downloaded
-download('wordnet')
 
 def init_sentiment_analyzers():
     """
@@ -152,19 +146,28 @@ def find_similar_policy(text, synonym_map, policy_list, fuzzy_threshold=80):
             return policy
 
     return 0
-#-------------------------------
-#case 1: post has politican mentioned and policy
-# what shld happen: caluclate combined sentiment then
-# adjust that by policy fuzzy match shift
-# return the combination (shifted value, i.e. sum)of combined sentiment and shift value
-# case 2: post has politican mentioned and no policy
-# what shld happen: calculate combined sentiment and
-# return that no shifting occurs
-# case 3: post has no politican and has policy
-# skip the polititian mentioned part, just go straight to policy fuzzy match shift,
-# use shift val (has hfint and shift value from map)
-# case 4: post has no politican and no policy
-# filter these out (DO THIS EARLY TO REDUCE HF COMPUTATION)
+
+def sentiment1(text):
+    '''
+    Calculates normal sentiment score for a post combining VADER and HuggingFace
+    :param text: a string
+    :return: a float between -1 and 1 representing combined sentiment score for each text
+    '''
+    global sia, sentiment_pipeline
+    # Determine VADER sentiment score
+    vader_score = sia.polarity_scores(text)['compound']
+
+    # Determine Hugging Face sentiment label
+    hf_result = sentiment_pipeline(text[:512])[0]  # Limit text to 512 tokens
+    hf_label = hf_result['label']
+
+    # Combine VADER and Hugging Face results
+    if hf_label == "POSITIVE":
+        combined_score = abs(vader_score)
+    else:  # NEGATIVE
+        combined_score = -abs(vader_score)
+
+    return combined_score
 
 # function sentiment analysis 2
 def sentiment2(inputs):
@@ -174,6 +177,8 @@ def sentiment2(inputs):
     Adds shifting to VADER and Hugging Faccombined sentiment score using a mapping
     for policies related to democrats or republicans
     """
+
+
     #SHIFTING LOGIC AFTER THE VADER AND HF COMBINED SCORE IS CALCULATED
     #have arrays of positive democrat and positive republican policies
     # so pro democrat = [...Pro choice..] pro republican  = [..freedom of arms..]
@@ -402,6 +407,19 @@ def sentiment2(inputs):
             break
 
     # Check for policy mentions and compute shift
+    # -------------------------------
+    # case 1: post has politican mentioned and policy
+    # what shld happen: caluclate combined sentiment then
+    # adjust that by policy fuzzy match shift
+    # return the combination (shifted value, i.e. sum)of combined sentiment and shift value
+    # case 2: post has politican mentioned and no policy
+    # what shld happen: calculate combined sentiment and
+    # return that no shifting occurs
+    # case 3: post has no politican and has policy
+    # skip the polititian mentioned part, just go straight to policy fuzzy match shift,
+    # use shift val (has hfint and shift value from map)
+    # case 4: post has no politican and no policy
+    # filter these out (DO THIS EARLY TO REDUCE HF COMPUTATION)
     shift_val = 0
     for policy, shift in policy_shift.items():
         if fuzz.partial_ratio(policy, text.lower()) > 80:

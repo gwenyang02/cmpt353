@@ -1,11 +1,15 @@
+# file to create sentiment scores features
+# and output .csv containing posts or posts and comments
+# with sentiment score column
 import sys
 import os
 import pandas as pd
 import nltk
 import multiprocessing
 from multiprocessing import Pool
-from sentimentmodule import init_sentiment_analyzers, sentiment2
-os.environ["OMP_NUM_THREADS"] = "6" # use 6 cores
+from sentimentmodule import init_sentiment_analyzers, sentiment1, sentiment2
+os.environ["OMP_NUM_THREADS"] = "4" # use 4 cores
+
 def main(input_csv, output_csv):
 
     # Read the parquet file
@@ -19,10 +23,8 @@ def main(input_csv, output_csv):
     # for posts data
     data['text'] = (data['title'] + ' ' + data['selftext'].fillna('')).astype(str)
 
-    # ?
-    # data['author'] = data['author'].str.strip()
-
     # Prepare texts for sentiment analysis
+    #texts = data['body'].tolist()
     texts = data['text'].tolist()
     subreddits = data['subreddit'].tolist()
 
@@ -33,11 +35,15 @@ def main(input_csv, output_csv):
     multiprocessing.set_start_method('spawn', force=True)
 
     with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
-        results = pool.map(sentiment2, input_data)
+        results = pool.map(sentiment1, texts)
+
+    #with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
+    #    results = pool.map(sentiment2, input_data)
 
     # Convert results to DataFrame
     # Joining the two dataframes so I have sentiment analysis with comments and other columns
-    sentiments_df = pd.DataFrame(results, columns=['sentiment', 'politician_mentioned','shifted'])
+    sentiments_df = pd.DataFrame(results, columns=['sentiment', 'politician_mentioned', 'shifted'])
+    #sentiments_df = pd.DataFrame(results, columns=['sentiment'])
     data = pd.concat([data, sentiments_df], axis=1)
 
     # Save the DataFrame with sentiment per comment
@@ -45,6 +51,6 @@ def main(input_csv, output_csv):
     print(f"Sentiment analysis completed. Output saved to {output_csv}")
 
 if __name__ == '__main__':
-    input_csv = 'datafiles/allsubsmall2.parquet'
-    output_csv = 'non_group_sent_synonyms.csv'
+    input_csv = 'datafiles/allactivitysmall2.parquet'
+    output_csv = 'csvfiles/sentiment_no_polarity.csv'
     main(input_csv,output_csv)

@@ -16,10 +16,10 @@ def categorize_score(x):
         return 'very_positive'
 
 #read csv
-data = pd.read_csv('../non_group_sent.csv')
+data = pd.read_csv('../csvfiles/non_group_sent.csv')
 
 #just do this for many different subredit names
-subreddit_name = 'AmericanPolitics'
+subreddit_name = 'PoliticalDiscussion'
 gunrights_data = data[data['subreddit'] == subreddit_name]
 
 # make category sentiment >0 or <0
