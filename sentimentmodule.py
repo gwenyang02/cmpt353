@@ -1,8 +1,7 @@
 #Module containing function for sentiment analysis
 #potentially we could have features sentimentanalysis1 sentimentanalysis2
-
-
-
+from rapidfuzz import fuzz
+from nltk.corpus import wordnet
 
 def init_sentiment_analyzers():
     """
