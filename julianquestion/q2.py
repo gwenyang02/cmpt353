@@ -50,4 +50,4 @@ print(f"Subreddit: {subreddit_name}")
 print(f"Chi2 Statistic: {chi2}")
 print(f"P-value: {p}")
 
-#weird unexpected results with sentiment analysis tbh 
+# can be used correctly?
