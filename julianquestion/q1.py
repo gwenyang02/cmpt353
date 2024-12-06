@@ -13,7 +13,8 @@ pd.set_option('display.max_columns', None) #added to view all cols
 # Load the data
 # nongroupedsentiall.csv uses allactivitysmall2 (comments and posts)
 # nongroupedsentiposts.csv uses allsubsmall2 (posts) only
-data = pd.read_csv('../csvfiles/non_group_sent.csv')
+data = pd.read_csv('./allcommentswithsentiment.csv')
+
 data = data[data['shifted'] != 0]
 # Get the count of comments per subreddit
 subreddit_counts = data['subreddit'].value_counts()
@@ -43,7 +44,7 @@ plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(12, 8))
-sns.violinplot(x='subreddit', y='sentiment', data=data)
+sns.violinplot(x='subreddit', y='shifted', data=data)
 plt.title('Distribution of Sentiment Scores per Subreddit')
 plt.xlabel('Subreddit')
 plt.ylabel('Sentiment Score')
@@ -51,8 +52,16 @@ plt.ylabel('Sentiment Score')
 plt.tight_layout()
 plt.show()
 
-#doing an ANOVA t test on sentiment analysis for all differnet subreddits
-#looks weird the graph kinda think the sentiment analysis is messed up 
+
+#doing an ANOVA to see differences in the distribution means not due to chance
+
+
+
+
+#tukey hsd
+
+
+
 
 
 

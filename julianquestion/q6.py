@@ -1,1 +1,3 @@
-#potential question: tracking the increase in activity over time... nearing election day
+# clustering with subsets of the data 
+
+# 
