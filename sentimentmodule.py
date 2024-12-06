@@ -177,7 +177,12 @@ def sentiment2(inputs):
     for policies related to democrats or republicans
     """
 
-
+#importing for string policy variation
+from fuzzywuzzy import fuzz
+from nltk.corpus import wordnet
+from nltk import download
+# Ensure NLTK WordNet is downloaded
+download('wordnet')
     #SHIFTING LOGIC AFTER THE VADER AND HF COMBINED SCORE IS CALCULATED
     #have arrays of positive democrat and positive republican policies
     # so pro democrat = [...Pro choice..] pro republican  = [..freedom of arms..]
