@@ -33,7 +33,7 @@ def sentiment1(inputs):
 
     # Define lists of politicians
     republicans = [
-        'Trump', 'Pence', 'DeSantis', 'McConnell', 'Cruz', 'Rubio',  # Original list
+        'Trump', 'Mike','Pence', 'Donald', 'DeSantis', 'McConnell', 'Cruz', 'Rubio',  # Original list
         'Ivanka Trump', 'Donald Trump Jr.', 'Eric Trump', 'Melania Trump',  # Trump family
         'Jared Kushner',  # Advisor
         'Ron DeSantis', 'Mitch McConnell', 'Ted Cruz', 'Marco Rubio',  # Reinforced names
@@ -42,7 +42,7 @@ def sentiment1(inputs):
         'Sean Hannity', 'Tucker Carlson', 'Rush Limbaugh'  # Influential figures
     ]
     democrats = [
-        'Hillary', 'Clinton', 'Biden', 'Harris', 'Pelosi', 'Sanders', 'Schumer',  # Original list
+        'Hillary', 'Clinton', 'Tim', 'kaine', 'Biden', 'Harris', 'Pelosi', 'Sanders', 'Schumer',  # Original list
         'Bill Clinton', 'Chelsea Clinton',  # Clinton family
         'Joe Biden', 'Jill Biden', 'Hunter Biden', 'Ashley Biden',  # Biden family
         'Kamala Harris', 'Doug Emhoff',  # Harris family
@@ -177,12 +177,12 @@ def sentiment2(inputs):
     for policies related to democrats or republicans
     """
 
-#importing for string policy variation
-from fuzzywuzzy import fuzz
-from nltk.corpus import wordnet
-from nltk import download
-# Ensure NLTK WordNet is downloaded
-download('wordnet')
+    #importing for string policy variation
+    from fuzzywuzzy import fuzz
+    from nltk.corpus import wordnet
+    from nltk import download
+    # Ensure NLTK WordNet is downloaded
+    download('wordnet')
     #SHIFTING LOGIC AFTER THE VADER AND HF COMBINED SCORE IS CALCULATED
     #have arrays of positive democrat and positive republican policies
     # so pro democrat = [...Pro choice..] pro republican  = [..freedom of arms..]
@@ -195,7 +195,7 @@ download('wordnet')
     # - 0.3 if positive on pro democrat comment
     # unpack tuple (text, subreddit)
 
-    text, subreddit = inputs
+    text, subreddit = inputs    
 
     global sia, sentiment_pipeline
 

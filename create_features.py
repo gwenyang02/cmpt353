@@ -13,15 +13,15 @@ os.environ["OMP_NUM_THREADS"] = "4" # use 4 cores
 def main(input_csv, output_csv):
 
     # Read the parquet file
-    data = pd.read_parquet(input_csv)
+    data = pd.read_csv(input_csv)
 
     data['subreddit'].value_counts()
 
     # Ensure 'body' is of type string for all_activity data
-    #data['body'] = data['body'].astype(str)
+    data['body'] = data['body'].astype(str)
 
     # for posts data
-    data['text'] = (data['title'] + ' ' + data['selftext'].fillna('')).astype(str)
+    # data['text'] = (data['title'] + ' ' + data['selftext'].fillna('')).astype(str)
 
     # Prepare texts for sentiment analysis
     #texts = data['body'].tolist()
@@ -35,7 +35,7 @@ def main(input_csv, output_csv):
     multiprocessing.set_start_method('spawn', force=True)
 
     with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
-        results = pool.map(sentiment1, texts)
+        results = pool.map(sentiment2, texts)
 
     #with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
     #    results = pool.map(sentiment2, input_data)
@@ -51,6 +51,6 @@ def main(input_csv, output_csv):
     print(f"Sentiment analysis completed. Output saved to {output_csv}")
 
 if __name__ == '__main__':
-    input_csv = 'datafiles/allactivitysmall2.parquet'
-    output_csv = 'csvfiles/sentiment_no_polarity.csv'
+    input_csv = './justcommentsbigcsv.csv'
+    output_csv = 'modifiedallcommentswithsentiment.csv'
     main(input_csv,output_csv)

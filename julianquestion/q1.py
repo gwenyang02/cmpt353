@@ -16,7 +16,7 @@ pd.set_option('display.max_columns', None) #added to view all cols
 # Load the data
 # nongroupedsentiall.csv uses allactivitysmall2 (comments and posts)
 # nongroupedsentiposts.csv uses allsubsmall2 (posts) only
-data = pd.read_csv('./allcommentswithsentiment.csv')
+data = pd.read_csv('./allcommentsbigwithsentiment.csv')
 
 data = data[data['shifted'] != 0]
 # Get the count of comments per subreddit
@@ -48,6 +48,7 @@ plt.show()
 
 plt.figure(figsize=(12, 8))
 sns.violinplot(x='subreddit', y='shifted', data=data)
+plt.xticks(rotation=45, fontsize=10, ha='right')
 plt.title('Distribution of Sentiment Scores per Subreddit')
 plt.xlabel('Subreddit')
 plt.ylabel('Sentiment Score')
@@ -84,17 +85,31 @@ tukey.plot_simultaneous(figsize=(10, 6))
 plt.title('Tukey HSD Pairwise Comparisons')
 plt.show()
 
-#what can we do to get differences? 
+
+# Calculate the percentage of rows where the sentiment differs from the shifted value
+total_rows = len(data)
+different_rows = len(data[data['sentiment'] != data['shifted']])
+
+# Calculate the percentage
+percentage_different = (different_rows / total_rows) * 100
+
+# Print the result
+print(f"Percentage of rows where sentiment differs from shifted: {percentage_different:.2f}%")
 
 
+mean_sentiment_per_subreddit = data.groupby('subreddit')['shifted'].mean()
+
+# Sort by the most positive sentiment
+most_positive_subreddits = mean_sentiment_per_subreddit.sort_values(ascending=False)
+
+# Output the most positive subreddits
+print("Most Positive Subreddits:")
+print(most_positive_subreddits.head(10))  # Show top 5 most positive subreddits
 
 
-
-
-
-
-
-
-
-
-
+#fact checking
+subreddits_of_interest = ["prochoice", "healthcare", "The_Donald", "Republican", "Liberal"]
+filtered_data = data[data['subreddit'].isin(subreddits_of_interest)]
+output_columns = ['subreddit', 'body', 'sentiment', 'shifted', 'score']
+filtered_data[output_columns].to_csv('factchecking.csv', index=False)
+print(f"Exported sentiment analysis data for the following subreddits to 'subreddit_sentiment_analysis.csv': {', '.join(subreddits_of_interest)}")
