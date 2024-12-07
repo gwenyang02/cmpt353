@@ -7,12 +7,12 @@ import pandas as pd
 import nltk
 import multiprocessing
 from multiprocessing import Pool
-from sentimentmodule import init_sentiment_analyzers, sentiment1, sentiment2
+from sentimentmodule import init_sentiment_analyzers, sentiment, sentiment1, sentiment2
 os.environ["OMP_NUM_THREADS"] = "4" # use 4 cores
 
 def main(input_csv, output_csv):
 
-    # Read the parquet file
+    # Read the csv file
     data = pd.read_csv(input_csv)
 
     data['subreddit'].value_counts()
@@ -24,8 +24,8 @@ def main(input_csv, output_csv):
     # data['text'] = (data['title'] + ' ' + data['selftext'].fillna('')).astype(str)
 
     # Prepare texts for sentiment analysis
-    #texts = data['body'].tolist()
-    texts = data['text'].tolist()
+    texts = data['body'].tolist()
+    #texts = data['text'].tolist()
     subreddits = data['subreddit'].tolist()
 
     # Combine texts and subreddits into a list of tuples
@@ -35,15 +35,15 @@ def main(input_csv, output_csv):
     multiprocessing.set_start_method('spawn', force=True)
 
     with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
-        results = pool.map(sentiment2, texts)
+        results = pool.map(sentiment, texts)
 
     #with Pool(processes=multiprocessing.cpu_count(), initializer=init_sentiment_analyzers) as pool:
     #    results = pool.map(sentiment2, input_data)
 
     # Convert results to DataFrame
     # Joining the two dataframes so I have sentiment analysis with comments and other columns
-    sentiments_df = pd.DataFrame(results, columns=['sentiment', 'politician_mentioned', 'shifted'])
-    #sentiments_df = pd.DataFrame(results, columns=['sentiment'])
+    #sentiments_df = pd.DataFrame(results, columns=['sentiment', 'politician_mentioned', 'shifted'])
+    sentiments_df = pd.DataFrame(results, columns=['sentiment'])
     data = pd.concat([data, sentiments_df], axis=1)
 
     # Save the DataFrame with sentiment per comment
@@ -51,6 +51,6 @@ def main(input_csv, output_csv):
     print(f"Sentiment analysis completed. Output saved to {output_csv}")
 
 if __name__ == '__main__':
-    input_csv = './justcommentsbigcsv.csv'
-    output_csv = 'modifiedallcommentswithsentiment.csv'
+    input_csv = 'csvfiles/allactivity3.csv'
+    output_csv = 'csvfiles/sentiment_no_polarity.csv'
     main(input_csv,output_csv)

@@ -19,6 +19,29 @@ def init_sentiment_analyzers():
         # model="SamLowe/roberta-base-go_emotions"
         device=-1
     )
+
+def sentiment(text):
+    '''
+    Calculates normal sentiment score for a post combining VADER and HuggingFace
+    :param text: a string
+    :return: a float between -1 and 1 representing combined sentiment score for each text
+    '''
+    global sia, sentiment_pipeline
+    # Determine VADER sentiment score
+    vader_score = sia.polarity_scores(text)['compound']
+
+    # Determine Hugging Face sentiment label
+    hf_result = sentiment_pipeline(text[:512])[0]  # Limit text to 512 tokens
+    hf_label = hf_result['label']
+
+    # Combine VADER and Hugging Face results
+    if hf_label == "POSITIVE":
+        combined_score = abs(vader_score)
+    else:  # NEGATIVE
+        combined_score = -abs(vader_score)
+
+    return combined_score
+
 #function sentiment analysis 1 (original approach)
 #notes about this approach: (VADER is Inconcistent and so is Hugging Face sometimes, it's better tho)
 def sentiment1(inputs):
@@ -146,27 +169,7 @@ def find_similar_policy(text, synonym_map, policy_list, fuzzy_threshold=80):
 
     return 0
 
-def sentiment1(text):
-    '''
-    Calculates normal sentiment score for a post combining VADER and HuggingFace
-    :param text: a string
-    :return: a float between -1 and 1 representing combined sentiment score for each text
-    '''
-    global sia, sentiment_pipeline
-    # Determine VADER sentiment score
-    vader_score = sia.polarity_scores(text)['compound']
 
-    # Determine Hugging Face sentiment label
-    hf_result = sentiment_pipeline(text[:512])[0]  # Limit text to 512 tokens
-    hf_label = hf_result['label']
-
-    # Combine VADER and Hugging Face results
-    if hf_label == "POSITIVE":
-        combined_score = abs(vader_score)
-    else:  # NEGATIVE
-        combined_score = -abs(vader_score)
-
-    return combined_score
 
 # function sentiment analysis 2
 def sentiment2(inputs):
