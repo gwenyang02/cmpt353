@@ -15,7 +15,7 @@ def main(input_csv, output_csv):
     # Read the csv file
     data = pd.read_csv(input_csv)
 
-    data['subreddit'].value_counts()
+    # data['subreddit'].value_counts()
 
     # Ensure 'body' is of type string for all_activity data
     data['body'] = data['body'].astype(str)
@@ -26,10 +26,10 @@ def main(input_csv, output_csv):
     # Prepare texts for sentiment analysis
     texts = data['body'].tolist()
     #texts = data['text'].tolist()
-    subreddits = data['subreddit'].tolist()
+    # subreddits = data['subreddit'].tolist()
 
     # Combine texts and subreddits into a list of tuples
-    input_data = list(zip(texts, subreddits))
+    # input_data = list(zip(texts, subreddits))
 
     # Initialize multiprocessing pool with 'spawn' to avoid tokenizer warnings
     multiprocessing.set_start_method('spawn', force=True)
@@ -51,6 +51,6 @@ def main(input_csv, output_csv):
     print(f"Sentiment analysis completed. Output saved to {output_csv}")
 
 if __name__ == '__main__':
-    input_csv = 'csvfiles/allactivity3.csv'
+    input_csv = './csvfiles/allactivity3.csv'
     output_csv = 'csvfiles/sentiment_no_polarity.csv'
     main(input_csv,output_csv)
