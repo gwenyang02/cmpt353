@@ -12,7 +12,7 @@ from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
 nltk.download('punkt')
 
-data = pd.read_csv('./postsdates.csv')
+data = pd.read_parquet('./allactivity3.parquet')
 
 # Convert 'created_utc' to datetime
 data['created_utc'] = pd.to_datetime(data['created_utc'])
@@ -22,7 +22,7 @@ election_date = pd.Timestamp('2016-11-08')  # Election date
 data['weeks_to_election'] = (election_date - data['created_utc']).dt.days // 7
 
 # Filter for election-related subreddits
-election_subreddits = ["The_Donald", "AmericanPolitics", "Republican", "politics", "democrats", "prochoice", "immigration", "guncontrol"]
+election_subreddits = ["The_Donald", "AmericanPolitics", "Republican", "politics", "democrats", "prochoice", "immigration", "guncontrol", "environment", "immigration", "healthcare", "economics"]
 election_data = data[data['subreddit'].isin(election_subreddits)]
 
 # Group by subreddit and weeks to election, then calculate activity counts
@@ -89,7 +89,6 @@ plt.show()
 
 #function for classification
 # Label posts based on proximity to events
-# Label posts based on proximity to events
 def label_event(row, event_weeks, window=2):
     for name, event_week in event_weeks:
         if abs(row['weeks_to_election'] - event_week) <= window:
@@ -100,11 +99,17 @@ def label_event(row, event_weeks, window=2):
 #classification portion
 # Define key events with their dates
 events = [
-    ("Iowa Caucuses", pd.Timestamp('2016-02-01')),
-    ("Super Tuesday", pd.Timestamp('2016-03-01')),
-    ("Orlando Shooting", pd.Timestamp('2016-06-12')),
-    ("Republican Convention", pd.Timestamp('2016-07-18')),
-    ("Democratic Convention", pd.Timestamp('2016-07-25'))
+    ("Election Day", pd.Timestamp('2016-11-08')),
+    ("Iowa Caucuses", pd.Timestamp('2016-02-01')),  # First major contest in the primaries
+    ("Super Tuesday", pd.Timestamp('2016-03-01')),  # Key day in the primary elections
+    ("Pulse Nightclub Shooting", pd.Timestamp('2016-06-12')),  # Major gun control and LGBTQ+ rights debate
+    ("Paris Agreement Signing", pd.Timestamp('2016-04-22')),  # Global environmental milestone
+    ("Clinton Email Scandal Findings", pd.Timestamp('2016-07-05')),  # Democratic controversy
+    ("Trump’s Border Wall Speech", pd.Timestamp('2016-08-31')),  # Immigration-related speech
+    ("First Presidential Debate", pd.Timestamp('2016-09-26')),  # Highly watched, pivotal election moment
+    ("Access Hollywood Tape Release", pd.Timestamp('2016-10-07')),  # Major controversy impacting Republicans
+    ("FBI Reopens Clinton Email Investigation", pd.Timestamp('2016-10-28')),  # Controversy close to election day
+    ("Brexit Referendum", pd.Timestamp('2016-06-23')),  # Global political event with economic implications
 ]
 
 # Add weeks to election for events
@@ -170,3 +175,4 @@ for event_name in activity_by_event['event'].unique():
     ngrams = compute_ngram_features(event_data, ngram_range=(1, 2), top_n=10)
     print(f"Top n-grams for {event_name}:")
     print(ngrams)
+
