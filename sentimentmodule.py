@@ -24,7 +24,7 @@ def init_sentiment_analyzers():
 def sentiment1(inputs):
     """
     Calculates combined sentiment using VADER and Hugging Face's sentiment-analysis pipeline.
-    Also checks for mentions of specified politicians.
+
     """
     # unpack tuple (text, subreddit)
     text, subreddit = inputs

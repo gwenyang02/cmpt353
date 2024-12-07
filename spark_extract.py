@@ -20,8 +20,7 @@ def load_filtered_data(path: str, schema: types.StructType, subreddits: list, ye
    '''
    df = spark.read.json(path, schema=schema) \
            .where(col('subreddit').isin(subreddits)) \
-           .where(col('year')==year) \
-           .where(col('month').isin([1,3,6,9,12]))
+           .where(col('year')==year)
 
 	# Check if the 'body' column exists => if it is it follows comment type schema
 	# filter out the comments that are empty or deleted
@@ -41,7 +40,7 @@ def main():
    # Define paths
    reddit_submissions_path = '/courses/datasets/reddit_submissions_repartitioned/'
    reddit_comments_path = '/courses/datasets/reddit_comments_repartitioned/'
-   output = 'reddit-us-election-expanded2'
+   output = 'reddit-us-election-expanded4'
 
    # Define schema for comments data
    comments_schema = types.StructType([
@@ -94,8 +93,8 @@ def main():
    reddit_comments = load_filtered_data(reddit_comments_path, comments_schema, election_subs, filter_years) \
                      .cache()
    # number of rows = n rows per subreddit * 20 subreddits = 2000*20 = 40000
-   print(f"Rows in comments: {reddit_comments.count()}")
-   print(f"Rows in submissions: {reddit_submissions.count()}")
+   #print(f"Rows in comments: {reddit_comments.count()}")
+   #print(f"Rows in submissions: {reddit_submissions.count()}")
 
    # writing comments and submissions to json
    #reddit_comments.write.json(output + '/election_comments', mode='overwrite', compression='gzip')
@@ -103,8 +102,8 @@ def main():
 
    # writing comments and submissions to parquet
    # it is safe to .coalesce(5) because 40000 rows/5 = 8000 rows per partition
-   reddit_comments.coalesce(5).write.parquet(output + '/election_comments', mode='overwrite')
-   reddit_submissions.coalesce(5).write.parquet(output + '/election_submissions', mode='overwrite')
+   #reddit_comments.coalesce(5).write.parquet(output + '/election_comments', mode='overwrite')
+   #reddit_submissions.coalesce(5).write.parquet(output + '/election_submissions', mode='overwrite')
 
    # based on distinct author in election subreddits,
    # grab comments and submissions from an author with activity in election subreddits
@@ -153,7 +152,7 @@ def main():
    # Combine comments and submissions into a single DataFrame
    all_activity = all_comments.unionByName(refined_submissions, allowMissingColumns=True)
    #all_activity.show(20)
-   print(f"Rows in all_activity: {all_activity.count()}")
+   #print(f"Rows in all_activity: {all_activity.count()}")
 
    # Write the combined DataFrame to a single output location
    # it is safe to .coalesce(8) because the combined all_activity df has upper limit of 80000 rows
